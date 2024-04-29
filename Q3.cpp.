@@ -7,19 +7,84 @@
 #include <chrono>
 
 struct requestStructure {
-    int request_id;
-    std::string ip_address;
-    std::string page_requested;
+  int request_id;
+  std::string ip_address;
+  std::string page_requested;
 };
 
-std::mutex mtx; // Mutex for thread-safe output
-std::condition_variable cv; // Condition variable for synchronization
-bool request_available = false; // Flag to indicate request presence in the queue
+std::mutex mtx; //for thread-safe output
+std::condition_variable cv; // condition variable for synchronization
+bool request_available = false; // Flagging to indicate request presence 
 
 std::queue<requestStructure> msg_queue; // Queue for client requests
 
-const std::string webPages[10] = {"google.com", "yahoo.com", "instagram.com, "youtube.com", "twitch.com", "discord.com", "bing.com", "facebook.com", "tiktok.com", "at&t.com"}; // List of web pages
+const std::string webPages[10] = {"google.com", "yahoo.com", "bing.com", "tiktok.com", "instagram.com", "snapchat.com", "pinterest.com", "zara.com", "h&m.com", "pacsun.com"}; // List of web pages
+
+// searching for the requested page (might delete this section)
+std::string simulate_search(const std::string& page) {
+  return "Retrieved content for " + webPages;
+}
 
 void listen() {
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::seconds(std::rand()
+  static int request_counter = 0; // Shared counter for request IDs
+
+  while (true) {
+    std::this_thread::sleep_for(std::chrono::seconds(std::rand() % 3 + 1)); // Sleep 1-3 seconds
+
+    requestStructure request;      // Generating a request
+    request.request_id = ++request_counter;
+    request.ip_address = ""; // Simulating empty IP
+    request.page_requested = webPages[std::rand() % 10]; // Random page request
+
+    { // Lock mutex before modifying shared state (queue and flag)
+      std::lock_guard<std::mutex> lock(mtx);
+      msg_queue.push(request);
+      request_available = true;
+    }
+
+    cv.notify_one(); // Notifying one worker thread about the new request
+  }
+}
+
+void do_request() {
+  while (true) {
+    std::unique_lock<std::mutex> lock(mtx);
+    cv.wait(lock, [] { return request_available; }); // Waiting until a request is available
+
+    requestStructure request;
+    if (!msg_queue.empty()) {
+      request = msg_queue.front();
+      msg_queue.pop();
+      request_available = false; 
+    }
+    lock.unlock();
+
+    // Simulate processing the request
+    std::string content = simulate_search(request.page_requested);
+
+    // Thread-safe output with mutex
+    {
+      std::lock_guard<std::mutex> lock(mtx);
+      std::cout << "Thread " << std::this_thread::get_id() << " completed request "
+                << request.request_id << " requesting webpage " << request.page_requested << std::endl;
+      std::cout << "Retrieved content: " << content << std::endl;
+    }
+  }
+}
+
+int main() {
+  int num_worker_threads = 10; // 
+
+  std::thread listener_thread(listen);
+  std::vector<std::thread> worker_threads(num_worker_threads);
+  for (int i = 0; i < num_worker_threads; ++i) {
+    worker_threads[i] = std::thread(do_request);
+  }
+
+  listener_thread.join();
+  for (auto& thread : worker_threads) {
+    thread.join();
+  }
+
+  return 0;
+}
