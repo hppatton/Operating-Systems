@@ -18,12 +18,7 @@ bool request_available = false; // Flagging to indicate request presence
 
 std::queue<requestStructure> msg_queue; // Queue for client requests
 
-const std::string webPages[10] = {"google.com", "yahoo.com", "bing.com", "tiktok.com", "instagram.com", "snapchat.com", "pinterest.com", "zara.com", "h&m.com", "pacsun.com"}; // List of web pages
-
-// searching for the requested page (might delete this section)
-std::string simulate_search(const std::string& page) {
-  return "Retrieved content for " + webPages;
-}
+const std::string webPages[10] = {"google.com", "yahoo.com", "bing.com", "tiktok.com", "instagram.com", "snapchat.com", "pinterest.com", "zara.com", "h&m.com", "pacsun.com"}; // List of web pages I want tehee
 
 void listen() {
   static int request_counter = 0; // Shared counter for request IDs
